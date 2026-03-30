@@ -1,0 +1,17 @@
+@HostAddress = http://localhost:5283
+
+### Returns the top 10 stories
+GET {{HostAddress}}/stories?count=10
+Accept: application/json
+
+### Returns the top 20 stories
+GET {{HostAddress}}/stories?count=20
+Accept: application/json
+
+### Returns error 400 - invalid paranmeter
+GET {{HostAddress}}/stories?count=0
+Accept: application/json
+
+### Returns error 400 - invalid paranmeter
+GET {{HostAddress}}/stories?count=-1
+Accept: application/json
