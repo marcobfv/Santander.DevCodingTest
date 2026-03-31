@@ -26,7 +26,7 @@ dotnet test
 The Swagger UI is available in development mode at the root of the API:
 
 ```uri
-`http://localhost:5283`
+http://localhost:5283
 ```
 
 ## Endpoint
