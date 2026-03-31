@@ -1,6 +1,6 @@
 # Santander - Dev Coding Test
 
-RESTful API built with ASP.NET Core 9 that retrieves the best stories from the [Hacker News API](https://github.com/HackerNews/API), ordered by score descending.
+RESTful API built with ASP.NET Core 9 that retrieves the best `N` stories from the [Hacker News API](https://github.com/HackerNews/API), ordered by score descending.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ cd Santander.DevCodingTest.Api
 dotnet run
 ```
 
-The API will be available at `http://localhost:5283`.
+The API will be available at `http://localhost:5283`
 
 ## How to test
 
@@ -21,11 +21,19 @@ The API will be available at `http://localhost:5283`.
 dotnet test
 ```
 
+### Swagger UI
+
+The Swagger UI is available in development mode at the root of the API:
+
+```uri
+`http://localhost:5283`
+```
+
 ## Endpoint
 
 ### GET /stories?count={n}
 
-Returns the best `n` stories from Hacker News ordered by score descending.
+Returns the best `N` stories from Hacker News ordered by score descending.
 
 #### Parameters
 
@@ -38,12 +46,12 @@ Returns the best `n` stories from Hacker News ordered by score descending.
 ```json
 [
   {
-    "title": "A uBlock Origin update was rejected from the Chrome Web Store",
-    "uri": "https://github.com/uBlockOrigin/uBlock-issues/issues/745",
-    "postedBy": "ismaildonmez",
-    "time": "2019-10-12T13:43:01+00:00",
-    "score": 1716,
-    "commentCount": 572
+    "title": "Copilot edited an ad into my PR",
+    "uri": "https://notes.zachmanson.com/copilot-edited-an-ad-into-my-pr/",
+    "postedBy": "pavo-etc",
+    "time": "2026-03-30T04:04:31+00:00",
+    "score": 1545,
+    "commentCount": 630
   }
 ]
 ```
