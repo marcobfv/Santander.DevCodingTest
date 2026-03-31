@@ -3,7 +3,6 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
-using NSubstitute;
 using Santander.DevCodingTest.Api.Models;
 using Santander.DevCodingTest.Api.Services;
 
@@ -13,6 +12,8 @@ public class HackerNewsServiceTests
 {
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
+
+    private const string BaseAddress = "https://hacker-news.firebaseio.com/v0/";
 
     public HackerNewsServiceTests()
     {
@@ -25,7 +26,13 @@ public class HackerNewsServiceTests
             })
             .Build();
     }
-    
+
+    private HackerNewsService CreateService(HttpClient httpClient)
+        => new(httpClient, _cache, _configuration);
+
+    private static HttpClient CreateHttpClient(HttpMessageHandler handler)
+        => new(handler) { BaseAddress = new Uri(BaseAddress) };
+
     private static HttpClient CreateHttpClientWithResponses(
         int[] bestStoryIds,
         Dictionary<int, HackerNewsItem> stories,
@@ -60,18 +67,17 @@ public class HackerNewsServiceTests
             return new HttpResponseMessage(HttpStatusCode.NotFound);
         });
 
-        return new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://hacker-news.firebaseio.com/v0/")
-        };
+        return CreateHttpClient(handler);
     }
+
+    private static HttpClient CreateTimeoutHttpClient()
+        => CreateHttpClient(new MockHttpMessageHandler(simulateTimeout: true));
 
     [Fact]
     public async Task GetBestStoriesAsync_WhenHackerNewsApiResponds_ReturnsStoriesOrderedByScoreDescending()
     {
         // Arrange
         var bestStoryIds = new[] { 1, 2, 3 };
-
         var stories = new Dictionary<int, HackerNewsItem>
         {
             [1] = new HackerNewsItem { Id = 1, Title = "Story Low",    Score = 100, By = "user1", Time = 1000, Descendants = 10 },
@@ -79,8 +85,7 @@ public class HackerNewsServiceTests
             [3] = new HackerNewsItem { Id = 3, Title = "Story Medium", Score = 200, By = "user3", Time = 3000, Descendants = 30 },
         };
 
-        var httpClient = CreateHttpClientWithResponses(bestStoryIds, stories);
-        var service = new HackerNewsService(httpClient, _cache, _configuration);
+        var service = CreateService(CreateHttpClientWithResponses(bestStoryIds, stories));
 
         // Act
         var result = await service.GetBestStoriesAsync(3);
@@ -105,8 +110,7 @@ public class HackerNewsServiceTests
         };
 
         var callCount = 0;
-        var httpClient = CreateHttpClientWithResponses(bestStoryIds, stories, onCall: () => callCount++);
-        var service = new HackerNewsService(httpClient, _cache, _configuration);
+        var service = CreateService(CreateHttpClientWithResponses(bestStoryIds, stories, onCall: () => callCount++));
 
         // Act
         await service.GetBestStoriesAsync(2);
@@ -127,8 +131,7 @@ public class HackerNewsServiceTests
             [2] = new HackerNewsItem { Id = 2, Title = "Story B", Score = 200, By = "user2", Time = 2000, Descendants = 10 },
         };
 
-        var httpClient = CreateHttpClientWithResponses(bestStoryIds, stories);
-        var service = new HackerNewsService(httpClient, _cache, _configuration);
+        var service = CreateService(CreateHttpClientWithResponses(bestStoryIds, stories));
 
         // Act
         var result = await service.GetBestStoriesAsync(999);
@@ -143,17 +146,12 @@ public class HackerNewsServiceTests
         // Arrange
         var cachedStories = new List<StoryResponse>
         {
-            new StoryResponse { Title = "Cached Story", Score = 500, PostedBy = "user1", Time = DateTimeOffset.UtcNow, CommentCount = 10 }
+            new() { Title = "Cached Story", Score = 500, PostedBy = "user1", Time = DateTimeOffset.UtcNow, CommentCount = 10 }
         };
 
         _cache.Set("best_stories_fallback", cachedStories, DateTimeOffset.MaxValue);
 
-        var httpClient = new HttpClient(new MockHttpMessageHandler(simulateTimeout: true))
-        {
-            BaseAddress = new Uri("https://hacker-news.firebaseio.com/v0/")
-        };
-
-        var service = new HackerNewsService(httpClient, _cache, _configuration);
+        var service = CreateService(CreateTimeoutHttpClient());
 
         // Act
         var result = await service.GetBestStoriesAsync(1);
@@ -167,12 +165,7 @@ public class HackerNewsServiceTests
     public async Task GetBestStoriesAsync_WhenApiTimesOutAndCacheIsEmpty_ShouldThrowException()
     {
         // Arrange
-        var httpClient = new HttpClient(new MockHttpMessageHandler(simulateTimeout: true))
-        {
-            BaseAddress = new Uri("https://hacker-news.firebaseio.com/v0/")
-        };
-
-        var service = new HackerNewsService(httpClient, _cache, _configuration);
+        var service = CreateService(CreateTimeoutHttpClient());
 
         // Act
         var act = async () => await service.GetBestStoriesAsync(5);
